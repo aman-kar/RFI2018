@@ -26,9 +26,9 @@ def main():
     
     in_file = 'backup.raw'
     out_file = 'guppi_56465_J1713+0747_0006.0000.raw'
-
+    print "Copying Orginial Raw File"
     copyfile(path+in_file,path+out_file)
-    
+    print "Successfully copied"
     g = GbtRaw(path+out_file,update=True)
     
     n = g.get_num_blocks()
@@ -67,7 +67,6 @@ def main():
                 for s in range(nspec):
         
                     winStart = s * (nfreq * nint)
-        
                     for i in range(nint):
         
                         start = winStart + i * nfreq
@@ -81,26 +80,17 @@ def main():
                             end=input_tsData.shape[1]
                             in_arr = np.zeros((end-start), dtype=np.complex_)
                             out_arr = np.zeros((end-start), dtype=np.complex_)
-                            in_arr.real = input_chanData[start:end, 0]
-                            in_arr.imag = input_chanData[start:end, 1]
-                            out_arr = np.fft.ifft(np.fft.fft(in_arr,norm='ortho'),norm='ortho')
-                            output_chanData[start:end,0]=out_arr.real
-                            output_chanData[start:end,1]=out_arr.imag
+                            output_chanData[start:end,0],output_chanData[start:end,1]=g.modify(in_arr,out_arr,input_chanData,output_chanData,start,end)
+         
                             break
-                        
-                        in_arr.real = input_chanData[start:end, 0]
-                        in_arr.imag = input_chanData[start:end, 1]
-                        
-                        out_arr = np.fft.ifft(np.fft.fft(in_arr,norm='ortho'),norm='ortho')
-                        
-                        output_chanData[start:end,0]=out_arr.real
-                        output_chanData[start:end,1]=out_arr.imag
-                
+                        output_chanData[start:end,0],output_chanData[start:end,1]=g.modify(in_arr,out_arr,input_chanData,output_chanData,start,end)
+
     
                 #print output_chanData
                 output_tsData[chan,:,sp:ep]=output_chanData
                 
         g.put_block(header,output_tsData,block)
+        print "Writing block" ,block," data back in to the copied raw file"
     
     
     

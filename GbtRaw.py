@@ -174,9 +174,10 @@ class GbtRaw(object):
         out_obj.flush()
         
     def modify(self, input_array, output_array,input_chanData,output_chanData,start,end):
+        """ Reads a temporary buffer of complex voltages, FFT/IFFT the array, returns the output"""
         input_array.real=input_chanData[start:end,0]
         input_array.imag=input_chanData[start:end,1]
-        output_array=np.fft.ifft(np.fft.fft(input_array,norm='ortho'),norm='ortho')
+        output_array=np.rint(np.fft.ifft(np.fft.fft(input_array,norm='ortho'),norm='ortho'))
         return output_array.real, output_array.imag
 
     def get_block(self, block = 0):
