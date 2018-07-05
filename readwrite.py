@@ -17,15 +17,15 @@ from shutil import copyfile
 
 
 def main():
-    blocks=2
+
     nfreq=1024
     nspec=53
     nint=159
     
     path    = '/Users/amankar/Downloads/realTimeRfi-master/'
-    
     in_file = 'backup.raw'
     out_file = 'guppi_56465_J1713+0747_0006.0000.raw'
+
     print "Copying Orginial Raw File"
     copyfile(path+in_file,path+out_file)
     print "Successfully copied"
@@ -38,10 +38,9 @@ def main():
     obsbw   = g.header_dict['OBSBW']
     obsnchan= g.header_dict['OBSNCHAN']
     
-    for block in range(blocks):        
+    for block in range(n):        
         
         header,input_tsData=g.get_block(block)
-        #input_tsData = g.extract(0,blocks, overlap=True)
         output_tsData=np.empty_like(input_tsData)
         print "Prcoessing Block: ", (block+1)
     
@@ -56,13 +55,12 @@ def main():
             tRes    = tsamp * nfreq * nint
             
             for pol in range(2):
+
                 sp=2*pol
                 ep=sp+2
         
                 input_chanData = input_tsData[chan, :, sp:ep]
                 output_chanData=np.empty_like(input_chanData)
-               # print fStart,fRes,tsamp,tRes
-               # print input_chanData
                 
                 for s in range(nspec):
         
@@ -76,17 +74,17 @@ def main():
                         
                         if(start>input_tsData.shape[1]):
                             break
+
                         if((end>input_tsData.shape[1])):
+
                             end=input_tsData.shape[1]
                             in_arr = np.zeros((end-start), dtype=np.complex_)
                             out_arr = np.zeros((end-start), dtype=np.complex_)
                             output_chanData[start:end,0],output_chanData[start:end,1]=g.modify(in_arr,out_arr,input_chanData,output_chanData,start,end)
-         
                             break
+                        
                         output_chanData[start:end,0],output_chanData[start:end,1]=g.modify(in_arr,out_arr,input_chanData,output_chanData,start,end)
 
-    
-                #print output_chanData
                 output_tsData[chan,:,sp:ep]=output_chanData
                 
         g.put_block(header,output_tsData,block)
