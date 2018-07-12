@@ -17,8 +17,6 @@ def main():
     rcParams.update({'figure.autolayout' : True})
     rcParams.update({'axes.formatter.useoffset' : False})
     
-    blocks=8
-    
     npol=2
     nfreq=1024
     nspec=412
@@ -28,6 +26,8 @@ def main():
     path    = '/Users/amankar/Downloads/realTimeRfi-master/'
     in_file = 'guppi_56465_J1713+0747_0006.0000.raw'
     fitsRoot = '0006.0000'
+    
+    blocks = raw_input("How many blocks to read? ")
 
     g = GbtRaw(path+in_file)
     n = g.get_num_blocks()
@@ -37,7 +37,7 @@ def main():
     obsbw   = g.header_dict['OBSBW']
     obsnchan= g.header_dict['OBSNCHAN']
 
-    tsData = g.extract(0,blocks, overlap=False)
+    tsData = g.extract(0,int(blocks), overlap=False)
     
     channel=raw_input("Channel to Inspect? : ")
     
@@ -176,12 +176,12 @@ def main():
                 plt.xlabel('Time (in s)')
                 plt.legend()
                 plt.title(pol_type+' Real Polarisation')
-                plt.savefig(path+'plots/ch'+channel+'/ch'+channel+'_tone_time_'+pol_type+'real.png')
+                plt.savefig(path+'plots/ch'+channel+'/ch'+channel+'_tone_time_'+pol_type+'_'+blocks+'real.png')
                 plt.show()
                 plt.close()
                 
-                plt.hist(tone_real,bins=50,alpha=0.5,color='b',label='Comparison')
-                plt.hist(clear_real,bins=50,alpha=0.5,color='g',label='Tone')
+                plt.hist(tone_real,bins=50,alpha=0.5,normed=True,color='b',label='Comparison')
+                plt.hist(clear_real,bins=50,alpha=0.5,normed=True,color='g',label='Tone')
                 plt.legend()
                 plt.title(pol_type+' Real Polarisation')
                 plt.savefig(path+'plots/ch'+channel+'/ch'+channel+'_tone_hist_'+pol_type+'real.png')
@@ -198,8 +198,8 @@ def main():
                 plt.show()
                 plt.close()
                 
-                plt.hist(tone_imag,bins=50,alpha=0.5,color='b',label='Comparison')
-                plt.hist(clear_imag,bins=50,alpha=0.5,color='g',label='Tone')
+                plt.hist(tone_imag,bins=50,alpha=0.5,normed=True,color='b',label='Comparison')
+                plt.hist(clear_imag,bins=50,alpha=0.5,normed=True,color='g',label='Tone')
                 plt.legend()
                 plt.title(pol_type+' Imaginary Polarisation')
                 plt.savefig(path+'plots/ch'+channel+'/ch'+channel+'_tone_hist_'+pol_type+'imag.png')
