@@ -5,12 +5,47 @@ Created on Tue Jul 10 12:43:44 2018
 
 @author: amankar
 """
-
+from astropy.io import fits
 import numpy as np
 import pylab as plt
 from matplotlib import rcParams
 import os
 from GbtRaw import *
+
+
+def spectroFITS(array, tStart, tRes, fStart, fRes, file_name):
+    """Writes out array as an image in a FITS file"""
+
+    # create the dynamic spectrum as the primary image
+    hdu = fits.PrimaryHDU(array)
+
+    # add the axes information
+    hdu.header['CRPIX1'] = 0.0
+    hdu.header['CRVAL1'] = tStart
+    hdu.header['CDELT1'] = tRes
+    hdu.header['CRPIX2'] = 0.0
+    hdu.header['CRVAL2'] = fStart
+    hdu.header['CDELT2'] = fRes
+
+    # create the bandpass and timeseries
+    bandpass    = np.average(array, axis=1)
+    timeseries  = np.average(array, axis=0)
+
+    # and create new image extensions with these
+    bphdu = fits.ImageHDU(bandpass,name='BANDPASS')
+    tshdu = fits.ImageHDU(timeseries,name='TIMESERIES')
+    # uodate these headers.
+    bphdu.header['CRPIX1'] = 0.0
+    bphdu.header['CRVAL1'] = fStart
+    bphdu.header['CDELT1'] = fRes
+    tshdu.header['CRPIX1'] = 0.0
+    tshdu.header['CRVAL1'] = tStart
+    tshdu.header['CDELT1'] = tRes
+
+
+    hdulist = fits.HDUList([hdu, bphdu, tshdu])
+    hdulist.writeto(file_name)
+
 
 def main():
     
@@ -19,7 +54,6 @@ def main():
     
     npol=2
     nfreq=1024
-    nspec=412
     nint=159
     
     
@@ -28,7 +62,7 @@ def main():
     fitsRoot = '0006.0000'
     
     blocks = raw_input("How many blocks to read? ")
-
+    nspec=int(51.5*int(blocks))
     g = GbtRaw(path+in_file)
     n = g.get_num_blocks()
     print "the file has", n, "blocks"
@@ -108,6 +142,12 @@ def main():
             kurt_imag = np.transpose(np.asarray(kurt_imag))
             
             dyn_spec = np.transpose(np.asarray(spec_list))
+             
+            if not os.path.exists('plots'): os.mkdir('plots')
+            if not os.path.exists('plots/ch'+channel): os.mkdir('plots/ch'+channel)
+            
+            fitsName = path + 'plots/ch' + channel + '/' + fitsRoot +'.c'+ str(chan+1) + '.'+pol_type+'.fits'
+            spectroFITS(dyn_spec, tStart, tRes, fStart, fRes, fitsName)                
             
             freq=[]
             for a in range(nfreq):
@@ -124,25 +164,22 @@ def main():
             avg_freq_pow=[]
             for f in range(len(dyn_spec[0,:])):
                 avg_freq_pow.append(np.average(dyn_spec[:,f]))
-            
-            
-            if not os.path.exists('plots'): os.mkdir('plots')
-            if not os.path.exists('plots/ch'+channel): os.mkdir('plots/ch'+channel)
-            
-            plt.plot(timed,avg_freq_pow,'.')
-            plt.xlabel('Time (in s)')
-            plt.title(pol_type+' Polarisation')
-            plt.savefig(path+'plots/ch'+channel+'/ch'+channel+'_time_'+pol_type+'.png')
-            plt.show()
-            plt.close()
-            
-            
-            plt.plot(freq,avg_time_pow)
+          
+            plt.subplots(3,1,figsize=(9,9))
+            plt.subplot(311)
+            plt.plot(freq,np.log(avg_time_pow),'-')
+            plt.xlim(freq[len(freq)-1],freq[0])
             plt.xlabel('Frequency (in MHz)')
-            plt.title(pol_type+' Polarisation')
-            plt.savefig(path+'plots/ch'+channel+'/ch'+channel+'_freq_'+pol_type+'.png')
+            plt.subplot(312)
+            plt.imshow(dyn_spec,cmap='hot',aspect='auto')
+            plt.subplot(313)
+            plt.plot(timed,avg_freq_pow,'-')
+            plt.xlim(timed[0],timed[len(timed)-1])
+            plt.xlabel('Time (in s)')
+            plt.savefig(path+'plots/ch'+channel+'/ch'+channel+'_spec_'+pol_type+'_'+blocks+'.png')
             plt.show()
             plt.close()
+                 
             
             if(raw_input('Power Spike to Inspect? (y/n) : ')=='y'):
                 
@@ -168,41 +205,33 @@ def main():
                 for e in range(len(kurt_imag[0,:])):
                     tone_imag.append(kurt_imag[rfi,e])
                     clear_imag.append(kurt_imag[random_idx,e])
-                  
-                
-                    
+             
+                plt.subplots(2,2,figsize=(9,9))
+                plt.subplot(221)
                 plt.plot(timed,clear_real,'b*',label='Comparison')
                 plt.plot(timed,tone_real,'g*',label='Tone')
                 plt.xlabel('Time (in s)')
                 plt.legend()
+                plt.ylim(-127,127)
                 plt.title(pol_type+' Real Polarisation')
-                plt.savefig(path+'plots/ch'+channel+'/ch'+channel+'_tone_time_'+pol_type+'_'+blocks+'real.png')
-                plt.show()
-                plt.close()
-                
+                plt.subplot(222)
                 plt.hist(tone_real,bins=50,alpha=0.5,normed=True,color='b',label='Comparison')
                 plt.hist(clear_real,bins=50,alpha=0.5,normed=True,color='g',label='Tone')
                 plt.legend()
                 plt.title(pol_type+' Real Polarisation')
-                plt.savefig(path+'plots/ch'+channel+'/ch'+channel+'_tone_hist_'+pol_type+'real.png')
-                plt.show()
-                plt.close()
-                
-                  
+                plt.subplot(223)
                 plt.plot(timed,clear_imag,'b*',label='Comparison')
                 plt.plot(timed,tone_imag,'g*',label='Tone')
                 plt.xlabel('Time (in s)')
                 plt.legend()
+                plt.ylim(-127,127)
                 plt.title(pol_type+' Imaginary Polarisation')
-                plt.savefig(path+'plots/ch'+channel+'/ch'+channel+'_tone_time_'+pol_type+'imag.png')
-                plt.show()
-                plt.close()
-                
+                plt.subplot(224)
                 plt.hist(tone_imag,bins=50,alpha=0.5,normed=True,color='b',label='Comparison')
                 plt.hist(clear_imag,bins=50,alpha=0.5,normed=True,color='g',label='Tone')
                 plt.legend()
                 plt.title(pol_type+' Imaginary Polarisation')
-                plt.savefig(path+'plots/ch'+channel+'/ch'+channel+'_tone_hist_'+pol_type+'imag.png')
+                plt.savefig(path+'plots/ch'+channel+'/ch'+channel+'_'+pol_type+'_'+blocks+'.png')
                 plt.show()
                 plt.close()
             
