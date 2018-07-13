@@ -11,6 +11,7 @@ import pylab as plt
 from matplotlib import rcParams
 import os
 from GbtRaw import *
+import sys
 
 
 def spectroFITS(array, tStart, tRes, fStart, fRes, file_name):
@@ -179,9 +180,10 @@ def main():
             plt.savefig(path+'plots/ch'+channel+'/ch'+channel+'_spec_'+pol_type+'_'+blocks+'.png')
             plt.show()
             plt.close()
-                 
             
-            if(raw_input('Power Spike to Inspect? (y/n) : ')=='y'):
+                
+                
+            while(raw_input('Is there a power Spike to Inspect? (y/n) : ')!='n'):
                 
                 print "Enter the frequency region where the spike is located"
                 spike_start_idx=np.abs(np.asarray(freq)-float(raw_input("Start Frequency (in MHz) : "))).argmin()
@@ -231,13 +233,11 @@ def main():
                 plt.hist(clear_imag,bins=50,alpha=0.5,normed=True,color='g',label='Tone')
                 plt.legend()
                 plt.title(pol_type+' Imaginary Polarisation')
-                plt.savefig(path+'plots/ch'+channel+'/ch'+channel+'_'+pol_type+'_'+blocks+'.png')
+                plt.savefig(path+'plots/ch'+channel+'/ch'+channel+'_'+pol_type+'_freq_'+str(round((freq[rfi]),3))+'_'+blocks+'.png')
                 plt.show()
                 plt.close()
             
-            
-            
-            
+main()
             
             
             
