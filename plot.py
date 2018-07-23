@@ -76,10 +76,10 @@ def main():
     
     channel=raw_input("Channel to Inspect? : ")
     
-    for chan in [int(channel)-1]:
+    for chan in [int(channel)-1]:#range(int(channel)):
         
         print "Processing channel: ", channel
-
+        
         fStart  = obsfreq - float(obsbw)/2.0 + (chan *  float(obsbw) / obsnchan)
         fRes = float(obsbw) / (nfreq * obsnchan)
         tsamp   = abs(float(obsnchan)/obsbw) * 1.0e-06  # MHz to Hz
@@ -148,6 +148,7 @@ def main():
             if not os.path.exists('plots/ch'+channel): os.mkdir('plots/ch'+channel)
             
             fitsName = path + 'plots/ch' + channel + '/' + fitsRoot +'.c'+ str(chan+1) + '.'+pol_type+'.fits'
+            if os.path.isfile(fitsName): os.remove(fitsName)
             spectroFITS(dyn_spec, tStart, tRes, fStart, fRes, fitsName)                
             
             freq=[]
@@ -166,6 +167,31 @@ def main():
             for f in range(len(dyn_spec[0,:])):
                 avg_freq_pow.append(np.average(dyn_spec[:,f]))
           
+            # Evan's Kurtosis Notebook Implementation
+            #-- Begin --
+            spec_list = np.asarray(spec_list)
+
+            sk_est=[]
+            m=159
+            n=1
+            d=1
+            
+            for fine_chan in range(nfreq):
+                s1=sum(spec_list[:,fine_chan])
+                s2=sum(np.sum(spec_list[:,fine_chan].reshape(-1,n)**2,axis=1))
+                sk_est.append(((m*n*d+1)/(m-1))*((m*s2)/(s1**2)-1))
+            
+            plt.gcf().clear()
+            plt.plot(freq,sk_est,'r+')
+            plt.title(pol_type+' Polarisation')
+            plt.xlabel('Frequency Channel')
+            plt.ylabel('SK Estimator')
+            plt.savefig(path+'plots/ch'+channel+'/ch'+channel+'_kurtosis_'+pol_type+'_'+blocks+'.png')
+            plt.show()
+            plt.close()
+            
+            ## -- End --
+            
             plt.subplots(3,1,figsize=(9,9))
             plt.subplot(311)
             plt.plot(freq,np.log(avg_time_pow),'-')
@@ -209,6 +235,7 @@ def main():
                     clear_imag.append(kurt_imag[random_idx,e])
              
                 plt.subplots(2,2,figsize=(9,9))
+                
                 plt.subplot(221)
                 plt.plot(timed,clear_real,'b*',label='Comparison')
                 plt.plot(timed,tone_real,'g*',label='Tone')
@@ -216,11 +243,14 @@ def main():
                 plt.legend()
                 plt.ylim(-127,127)
                 plt.title(pol_type+' Real Polarisation')
+                
                 plt.subplot(222)
                 plt.hist(tone_real,bins=50,alpha=0.5,normed=True,color='b',label='Comparison')
                 plt.hist(clear_real,bins=50,alpha=0.5,normed=True,color='g',label='Tone')
+                plt.xlim(-127,127)
                 plt.legend()
                 plt.title(pol_type+' Real Polarisation')
+                
                 plt.subplot(223)
                 plt.plot(timed,clear_imag,'b*',label='Comparison')
                 plt.plot(timed,tone_imag,'g*',label='Tone')
@@ -228,11 +258,14 @@ def main():
                 plt.legend()
                 plt.ylim(-127,127)
                 plt.title(pol_type+' Imaginary Polarisation')
+                
                 plt.subplot(224)
                 plt.hist(tone_imag,bins=50,alpha=0.5,normed=True,color='b',label='Comparison')
                 plt.hist(clear_imag,bins=50,alpha=0.5,normed=True,color='g',label='Tone')
+                plt.xlim(-127,127)
                 plt.legend()
                 plt.title(pol_type+' Imaginary Polarisation')
+                
                 plt.savefig(path+'plots/ch'+channel+'/ch'+channel+'_'+pol_type+'_freq_'+str(round((freq[rfi]),3))+'_'+blocks+'.png')
                 plt.show()
                 plt.close()
