@@ -31,7 +31,7 @@ import numpy as np
 import os
 import os.path
 import pprint
-# from astropy.io import fits
+from numba import jit
 
 class GbtRaw(object):
     """ Python class to handle GBT "raw" data files
@@ -40,7 +40,7 @@ class GbtRaw(object):
         in_file (str): name of the file to open
 
     """
-
+    @jit
     def __init__(self, in_file, update=False):
 
         self.card_length = 80 # number of characters in a card
@@ -60,12 +60,9 @@ class GbtRaw(object):
 
         # consistency check - the file nust contain an integer
         # number of blocks
-	print self.in_size
-	print self.hd_len
         if (self.in_size % self.hd_len) != 0:
             raise ValueError
         self.nblocks = self.in_size / self.hd_len
-
 
     def get_num_blocks(self):
         """Return the number of blocks in the file."""
@@ -173,13 +170,6 @@ class GbtRaw(object):
         out_obj[:] = self.in_obj[start:end]
         out_obj.flush()
         
-    def modify(self, input_array, output_array,input_chanData,output_chanData,start,end):
-        """ Reads a temporary buffer of complex voltages, FFT/IFFT the array, returns the output"""
-        input_array.real=input_chanData[start:end,0]
-        input_array.imag=input_chanData[start:end,1]
-        output_array=np.rint(np.fft.ifft(np.fft.fft(input_array,norm='ortho'),norm='ortho'))
-        return output_array.real, output_array.imag
-
     def get_block(self, block = 0):
         """Read a header / data block from file. """
 
@@ -194,7 +184,6 @@ class GbtRaw(object):
             data       = self.in_obj[end_header : end_data]
             data       = data.reshape((self.obsnchan, -1, self.npol))
             return header, data
-
 
     def put_block(self, header, data, block = 0):
         """ Write a header / data block to file."""
@@ -215,7 +204,7 @@ class GbtRaw(object):
         self.in_obj[data_start:data_end] = data
         self.in_obj.flush()
 
-
+    @jit
     def extract(self, start_block = 0, blocks = 1, overlap = False):
         """Extracts data from requested blocks
 
