@@ -1,15 +1,98 @@
 #!/usr/bin/env python2
 # -*- coding: utf-8 -*-
-"""
-Created on Tue Jul 10 12:43:44 2018
 
-@author: amankar
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#  GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+
 """
+
+Author: Aman Kar
+Date:   10 July 2018
+
+Execution Format : python plot2.py 'path to raw GUPPI file'
+Make sure GbtRaw.py is in the same directory as where you execute this script
+
+
+Script Goal :-
+
+Identical to plot.py. This script is meant to run through all channels
+without asking for any user input
+
+Scans through raw data file and produce power 
+spectrum, spectrogram and time series plots
+for all channels of X and Y polarisations
+
+Credit: Majority of the script was initially created by Richard Prestage and
+has hence since been modified to satisfy different script goals
+
+Variables in Use:-
+
+in_file       : Path to the raw GUPPI file
+fitsRoot      : Raw Guppi File extension (e.g. '0006.0000')
+blocks        : Number of blocks being extracted from raw file
+g             : class object of GbtRaw package
+n             : Number of blocks that exist in the raw file
+obsfreq       : Centre Frequency of observations
+obsbw         : Observed Bandwidth
+obsnchan      : Number of Coarse Frequency Channels
+tsData        : Internal Data Array Buffer( Number of Coarse Channels x Data Samples x Polarisations)
+                Example - When extracting a single block from 0006.0000 raw file, you get 32 coarse 
+                channels with 8386560 bytes of data in four types of polarisations ( Real & Imag of X & Y)
+
+npol          : Number of Polarisations (Hardcoded to 2 for X & Y)
+nfreq         : Number of Fine Frequency Channels (arbitrarily chosen but ideally should opt for powers of 2)
+nint          : Number of individual intergrations to put into a single power spectrum
+nspec         : Number of Power spectra to put into the spectrogram
+                Ideally, nfreq x nint x nspec should equal the number of data samples present in the total
+                number of blocks read
+blk           : Block Counter
+
+chanData      : Extract data from chosen coarse channel of either Polarisation (X or Y)
+in_arr        : Temporary complex buffer that stores real and imaginary values
+out_arr       : FFT Output from in_arr complex buffer
+accum         : Converts complex voltage values to Power and accumulates
+spec_list     : Power Spectra
+dyn_spec      : Dynamic Spectrum or Spectrogram with nspec power spectra, each with nfreq frequency channels
+                This data array can be thought of power values with time along the x-axis and frequency along Y-axis
+channel       : Coarse Channel to be examined
+chan          : Python relative of channel
+
+pol           : 0 for X Polarisation and 1 for Y Polarisation
+pol_type      : Stores the type of Polarisation chosen for the purposes of formatting filenames
+sp            : Start of Polarization
+ep            : End Polarization
+                sp,ep should basically extract the real and imag components of the chose polarisation (X or Y)
+
+fStart        : Starting Frequency for the chosen coarse channel
+fRes          : Frequency Resolution for the output spectrogram
+tsamp         : Sampling Rate of the raw data file
+tRes          : Time Reolution for the output spectrogram
+
+fitsName      : FitsName extension for filename
+freq          : Frequency Domain array for the chosen coarse channel
+timed         : Time Domain array for the chosen coarse channel
+avg_time_pow  : Power values obtained after averaging along the time domain (To plot time series)
+avg_freq_pow  : Power values obtained after averaging along the frequency domain (To power spectrum)
+
+"""
+
+
 from astropy.io import fits
 import numpy as np
 import pylab as plt
 from matplotlib import rcParams
-import os
+import os,sys
 from GbtRaw import *
 
 
@@ -52,26 +135,33 @@ def main():
     rcParams.update({'figure.autolayout' : True})
     rcParams.update({'axes.formatter.useoffset' : False})
     
-    npol=2
-    nfreq=1024
-    nint=159
+    in_file = sys.argv[1] #Path to the raw GUPPI file
+    fitsRoot = in_file[-13:-4] #Raw Guppi File extension (e.g. '0006.0000')
     
-    
-    path    = '/Users/amankar/Downloads/realTimeRfi-master/'
-    in_file = 'guppi_56465_J1713+0747_0006.0000.raw'
-    fitsRoot = '0006.0000'
-    
-    blocks = raw_input("How many blocks to read at a time? ")
-    nspec=int(51.5*int(blocks))
-    g = GbtRaw(path+in_file)
-    n = g.get_num_blocks()
+    blocks = raw_input("How many blocks to read? : ")  #Number of blocks being extracted from raw file
+    g = GbtRaw(in_file) #class object of GbtRaw package
+    n = g.get_num_blocks() #Number of blocks that exist in the raw file
     print "the file has", n, "blocks"
+      
+    npol=2 #Number of Polarisations (Hardcoded to 2 for X & Y)
+    
+    nfreq=int(raw_input("Number of fine frequency channels ? :")) 
+    #Number of Fine Frequency Channels (arbitrarily chosen but ideally should opt for powers of 2)
+    
+    nint=int(raw_input("Value for nint (159) : "))
+    #Number of individual intergrations to put into a single power spectrum
+    
+    nspec=int(51.5*(1024/nfreq)*int(blocks))
+    #Number of Power spectra to put into the spectrogram
+    #Ideally, nfreq x nint x nspec should equal the number of data samples present in the total
+    #number of blocks read
+   
 
     obsfreq = g.header_dict['OBSFREQ']
     obsbw   = g.header_dict['OBSBW']
     obsnchan= g.header_dict['OBSNCHAN']
     
-    blk=0
+    blk=0 #Block Counter 
     
     for block in range(0,n,int(blocks)):
 
@@ -79,7 +169,7 @@ def main():
         print "Reading blocks", block+1,"-",block+int(blocks)
         tsData = g.extract(block,int(blocks),overlap=False)
         
-        channel=raw_input("Channel to Inspect? : ")
+        channel=raw_input("Channel to Inspect? (999 to exit) : ")
         
         while(channel!='999'):    
             
@@ -87,28 +177,37 @@ def main():
                 
                 print "Processing channel: ", channel
                 
+                #Extract header information
                 fStart  = obsfreq - float(obsbw)/2.0 + (chan *  float(obsbw) / obsnchan)
+                #Starting Frequency for the chosen coarse channel
+                
                 fRes = float(obsbw) / (nfreq * obsnchan)
+                #Frequency Resolution for the output spectrogram
+                
                 tsamp   = abs(float(obsnchan)/obsbw) * 1.0e-06  # MHz to Hz
+                #Sampling Rate of the raw data file
+                
                 tStart  = 0
                 tRes    = tsamp * nfreq * nint
-        
+                #Time Reolution for the output spectrogram
+                
+                #Loop through both (X & Y) Polarisation if npol is 2 or execute only for X polarisation if npol is 1
                 for pol in range(npol):
                 
-                    sp = 2*pol
-                    ep = sp+2
+                    sp = 2*pol #Start of Polarization
+                    ep = sp+2 #End Polarization
+                    #sp,ep should basically extract the real and imag components of the chose polarisation (X or Y)
                     
-                    chanData = tsData[chan, :, sp:ep]
+                    chanData = tsData[chan, :, sp:ep] #Extract data from chosen coarse channel of either Polarisation (X or Y)
                     
                     if pol==0:
                         pol_type='X'
                     elif pol==1:
                         pol_type='Y'
+                    #Stores the type of Polarisation chosen for the purposes of formatting filenames
                     
-                    spec_list = []
-                
-                    # do the work
-                    
+                    spec_list = [] # Power Spectra
+                                    
                     # loop over the power spectrum we are creating
                     for s in range(nspec):
             
@@ -141,30 +240,33 @@ def main():
                         spec_list.append(accum/nint)
                     
                     dyn_spec = np.transpose(np.asarray(spec_list))
-                     
+                    #Dynamic Spectrum or Spectrogram with nspec power spectra, each with nfreq frequency channels
+                    #This data array can be thought of power values with time along the x-axis and frequency along Y-axis
+                    
                     if not os.path.exists('plots'): os.mkdir('plots')
                     if not os.path.exists('plots/ch'+channel): os.mkdir('plots/ch'+channel)
                     
-                    fitsName = path + 'plots/ch' + channel + '/' + fitsRoot +'.c'+ str(chan+1) + '.'+pol_type+'.'+str(blk)+'.fits'
+                    fitsName = 'plots/ch' + channel + '/' + fitsRoot +'.c'+ str(chan+1) + '.'+pol_type+'.'+str(blk)+'.fits'
                    
                     if os.path.isfile(fitsName): os.remove(fitsName)
                     #spectroFITS(dyn_spec, tStart, tRes, fStart, fRes, fitsName)                
                     
-                    freq=[]
+                    freq=[] #Frequency Domain array for the chosen coarse channel
                     for a in range(nfreq):
                         freq.append(fStart+((fRes)*a))
                         
-                    timed=[]
+                    timed=[] #Time Domain array for the chosen coarse channel
                     for b in range(len(spec_list)):
                         timed.append(tStart+(tRes*b))
                     
-                    avg_time_pow=[]
+                    avg_time_pow=[] #Power values obtained after averaging along the time domain (To plot time series)
                     for c in range(len(dyn_spec[:,0])):
                         avg_time_pow.append(np.average(dyn_spec[c,:]))
                     
-                    avg_freq_pow=[]
+                    avg_freq_pow=[] #Power values obtained after averaging along the frequency domain (To power spectrum)
                     for f in range(len(dyn_spec[0,:])):
-                        avg_freq_pow.append(np.average(dyn_spec[:,f]))
+                        avg_freq_pow.append(np.average(dyn_spec[:,f]))        
+                    
                     
                     
                     plt.subplots(3,1,figsize=(9,9))
@@ -178,9 +280,8 @@ def main():
                     plt.plot(timed,avg_freq_pow,'-')
                     plt.xlim(timed[0],timed[len(timed)-1])
                     plt.xlabel('Time (in s)')
-                    #plt.savefig(path+'plots/ch'+channel+'/ch'+channel+'_spec_'+pol_type+'_'+str(blk)+'.png')
+                    plt.savefig('plots/ch'+channel+'/ch'+channel+'_spec_'+pol_type+'_'+str(blk)+'.png')
                     plt.show()
-                    plt.close()                        
                   
             channel=raw_input("Channel to Inspect? : ")
 
