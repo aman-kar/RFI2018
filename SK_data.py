@@ -215,21 +215,27 @@ lt,ut = spectralKurtosis_thresholds(np.float(nspec), N = np.float(n), d = 1, p =
 min_value=np.concatenate((sk_result[:len(sk_result)//2],sk_result[len(sk_result)//2+1:]),axis=0)
 
 
+
 print('SK_value: '+str(np.min(min_value)))
 
 plt.subplots(2,1, figsize=(9,9))
-
 plt.subplot(211)
-plt.gca().invert_xaxis()
 plt.plot(np.average(dyn_spec,axis=1),'r-')
+plt.xlim(0,len(dyn_spec))
+plt.gca().invert_xaxis()
+plt.ylabel('Power')
 plt.title(infile+'_'+str(nspec)+'_'+str(k)+'_'+str(pol))
 
 plt.subplot(212)
 plt.plot(sk_result,'b+')
+plt.xlim(0,len(sk_result))
 plt.gca().invert_xaxis()
 plt.title(infile+'_'+str(nspec)+'_'+str(k)+'_'+str(pol))
 plt.plot(np.zeros(k)+ut,'r:')
 plt.plot(np.zeros(k)+lt,'r:')
+plt.xlabel(str(k)+' fine frequncy channels')
+plt.ylabel('SK Estimator Value')
+
 
 plt.text(np.argmin(min_value),(np.max(sk_result)+np.min(sk_result))/2,str(np.min(min_value)))
 plt.savefig(infile+'_'+str(m)+'_'+str(k)+'_'+str(pol)+'_sk.png')
