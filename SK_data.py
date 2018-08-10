@@ -88,7 +88,7 @@ import numpy as np
 import scipy.optimize
 import matplotlib.pyplot as plt
 import sys
-import scipy
+import scipy.special
 from matplotlib import rcParams
 
 infile = sys.argv[1]

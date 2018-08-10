@@ -71,21 +71,21 @@ output_array         : Array that holds the output of the FFT/IFFT processing on
 
 import numpy as np
 from GbtRaw import *
-from numba import jit
+#from numba import jit
 import sys
 
 #Reads a temporary buffer of complex voltages, perform FFT/IFFT the array, returns the output
-@jit
+#@jit
 def modify(input_chanData,start,end):
     input_array=np.zeros((end-start),dtype=np.complex_)
     input_array.real=input_chanData[start:end,0]
     input_array.imag=input_chanData[start:end,1]
-    output_array=np.rint(np.fft.ifft(np.fft.fft(input_array,norm='ortho'),norm='ortho'))
+    output_array=np.rint(np.fft.ifft(np.fft.fft(input_array))) #Normalize the FFT/IFFT when numpy is updated on the lustre system
     return output_array.real, output_array.imag
 
 #Function to read in the raw data file, perform modify() on the each block and write it
 #back into the orginal raw data file.
-@jit
+#@jit
 def readwrite(g,blocks,obsnchan,npol,nspec,nfreq,nint):
     
     for block in range(blocks):        
@@ -112,6 +112,10 @@ def readwrite(g,blocks,obsnchan,npol,nspec,nfreq,nint):
                 #Created with exact shape and size of input_chanData to hold the output of FFT/IFFT processing 
                 #on input_chanData
   
+                #The following for loops can be avoided but slows down the script significantly
+                #Breaking the data blocks in smaller arrays and performing modify() on them
+                #seems to be the best optimization for now
+                #Maybe numba can speed this process up
                 for s in range(nspec):
         
                     winStart = s * (nfreq * nint) #Start location in input_chanData of this spectrum
@@ -147,18 +151,17 @@ def main():
     blocks = g.get_num_blocks() #Number of blocks being extracted from raw file
     print "the file has", blocks, "blocks"
     
+    #The following variables can be avoided but is chosen so that the script runs faster
     npol=2 #Number of Polarisations (Hardcoded to 2 for X & Y)
     
-    nfreq=int(raw_input("Number of fine frequency channels ? :")) 
+    
+    nfreq=1024
     #Number of Fine Frequency Channels (arbitrarily chosen but ideally should opt for powers of 2)
     
-    nint=int(raw_input("Value for nint (159) : "))
+    nint=159
     #Number of individual intergrations to put into a single power spectrum
     
-    nspec=int(51.5*(1024/nfreq)*int(blocks))
-    #Number of Power spectra to put into the spectrogram
-    #Ideally, nfreq x nint x nspec should equal the number of data samples present in the total
-    #number of blocks read
+    nspec=52 #Hardcoded for one block
     
     obsnchan = g.header_dict['OBSNCHAN'] #Number of Coarse Frequency Channels
     

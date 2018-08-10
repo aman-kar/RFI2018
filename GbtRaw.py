@@ -31,7 +31,7 @@ import numpy as np
 import os
 import os.path
 import pprint
-from numba import jit
+#from numba import jit
 
 class GbtRaw(object):
     """ Python class to handle GBT "raw" data files
@@ -40,7 +40,7 @@ class GbtRaw(object):
         in_file (str): name of the file to open
 
     """
-    @jit
+#    @jit
     def __init__(self, in_file, update=False):
 
         self.card_length = 80 # number of characters in a card
@@ -204,7 +204,7 @@ class GbtRaw(object):
         self.in_obj[data_start:data_end] = data
         self.in_obj.flush()
 
-    @jit
+#    @jit
     def extract(self, start_block = 0, blocks = 1, overlap = False):
         """Extracts data from requested blocks
 

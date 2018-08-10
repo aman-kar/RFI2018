@@ -283,7 +283,7 @@ def main():
                     plt.savefig('plots/ch'+channel+'/ch'+channel+'_spec_'+pol_type+'_'+str(blk)+'.png')
                     plt.show()
                   
-            channel=raw_input("Channel to Inspect? : ")
+            channel=raw_input("Channel to Inspect? (999 to exit) : ")
 
                 
 main()
